@@ -154,12 +154,14 @@ public class MainActivity extends AppCompatActivity {
     public void startDataCollectionService(View view) {
         startForegroundService(new Intent(this, DataCollectorService.class));
         log("Data collection service started");
+        log("");
     }
 
     public void stopDataCollectionService(View view) {
         stopService(new Intent(this, DataCollectorService.class));
         Tools.shutdownBackgroundTasks();
         log("Data collection service stopped");
+        log("");
     }
 
     public synchronized void clearLogs(View view) {

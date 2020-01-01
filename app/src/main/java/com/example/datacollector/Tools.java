@@ -85,6 +85,7 @@ class Tools {
 
     static void shutdownBackgroundTasks() {
         executor.shutdownNow();
+        executor = Executors.newCachedThreadPool();
     }
 
     static String readCharacterFile(File file) throws IOException {
