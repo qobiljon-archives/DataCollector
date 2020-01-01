@@ -5,8 +5,15 @@
     <string name="api_submit_location_data">api_submit_location_data</string>
     <string name="api_submit_bt_scan_data">api_submit_bt_scan_data</string>
     <string name="api_battery_level_data">api_battery_level_data</string>
+    <string name="api_get_data_submission_progress">api_get_data_submission_progress</string>
+    <string name="api_get_lof_calculation_progress">api_get_lof_calculation_progress</string>
 
     <string name="location_file_name">location_data</string>
     <string name="bt_scan_file_name">bt_scan_data</string>
     <string name="battery_level_file_name">battery_level_data</string>
+    <string name="data_submission">Data submission progress</string>
+    <string name="lof_calculation">LOF calculation progress</string>
+    <string name="stop_service">Stop service</string>
+    <string name="clear_logs">Clear all logs</string>
+    <string name="start_service">Start service</string>
 </resources>

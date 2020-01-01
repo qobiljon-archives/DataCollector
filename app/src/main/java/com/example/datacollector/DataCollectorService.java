@@ -86,7 +86,7 @@ public class DataCollectorService extends Service {
 
         // listen for bluetooth broadcasts
         this.bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        BroadcastReceiver bluetoothBroadcastReceiver = new BroadcastReceiver() {
+        this.bluetoothBroadcastReceiver = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
                 if (BluetoothDevice.ACTION_FOUND.equals(action)) {
@@ -107,7 +107,7 @@ public class DataCollectorService extends Service {
         registerReceiver(bluetoothBroadcastReceiver, filter);
 
         // listen for battery level broadcasts
-        BroadcastReceiver batteryLevelBroadcast = new BroadcastReceiver() {
+        this.batteryLevelBroadcastReceiver = new BroadcastReceiver() {
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
                 if (Intent.ACTION_BATTERY_CHANGED.equals(action)) {
@@ -131,9 +131,23 @@ public class DataCollectorService extends Service {
             }
         };
         filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(batteryLevelBroadcast, filter);
+        registerReceiver(batteryLevelBroadcastReceiver, filter);
 
-        Log.e(TAG, "DataCollectorService created");
+        try {
+            if (!this.locationDataFile.exists())
+                //noinspection ResultOfMethodCallIgnored
+                this.locationDataFile.createNewFile();
+            if (!this.btScanDataFile.exists())
+                //noinspection ResultOfMethodCallIgnored
+                this.btScanDataFile.createNewFile();
+            if (!this.batteryLevelDataFile.exists())
+                //noinspection ResultOfMethodCallIgnored
+                this.batteryLevelDataFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        Log.d(TAG, "DataCollectorService created");
     }
 
     @Override
@@ -141,8 +155,10 @@ public class DataCollectorService extends Service {
         super.onDestroy();
 
         this.fusedLocationClient.removeLocationUpdates(locationCallback);
+        unregisterReceiver(this.bluetoothBroadcastReceiver);
+        unregisterReceiver(this.batteryLevelBroadcastReceiver);
 
-        Log.e(TAG, "DataCollectorService terminated");
+        Log.d(TAG, "DataCollectorService terminated");
 
         onTaskRemoved(null);
     }
@@ -180,7 +196,7 @@ public class DataCollectorService extends Service {
                                                 location.getLongitude(),
                                                 location.getAltitude()
                                         );
-                                        //Log.e("LOCATION UPDATE", String.format(Locale.getDefault(), "(ts, lat, lon, alt)=(%d, %f, %f, %f)", location.getTime(), latitude, longitude, altitude));
+                                        //Log.i("LOCATION UPDATE", String.format(Locale.getDefault(), "(ts, lat, lon, alt)=(%d, %f, %f, %f)", location.getTime(), latitude, longitude, altitude));
 
                                         if (previouslyStoredLocation == null)
                                             previouslyStoredLocation = location;
@@ -193,9 +209,9 @@ public class DataCollectorService extends Service {
                         Looper.myLooper()
                 );
 
-                Log.e(TAG, "DataCollectorService started");
+                Log.d(TAG, "DataCollectorService started");
             } else {
-                Log.e(TAG, "DataCollectorService failed to start");
+                Log.d(TAG, "DataCollectorService failed to start");
             }
         }
 
@@ -221,8 +237,10 @@ public class DataCollectorService extends Service {
             public void run() {
                 while (!Thread.interrupted()) {
                     try {
-                        if (!Tools.isNetworkUnavailable())
+                        if (Tools.isConnectedToInternet())
                             uploadCollectedData(getApplicationContext());
+                        else
+                            Log.e(TAG, "DataCollectorService: tried to submit data, but network unavailable");
                     } catch (IOException | InterruptedException | ExecutionException e) {
                         e.printStackTrace();
                     }
@@ -241,7 +259,7 @@ public class DataCollectorService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        Log.e(TAG, "DataCollectorService task removed, restarting service...");
+        Log.d(TAG, "DataCollectorService task removed, restarting service...");
         Intent intent = new Intent(getApplicationContext(), DataCollectorService.class);
         intent.setPackage(PACKAGE_NAME);
         PendingIntent restartServicePendingIntent = PendingIntent.getService(getApplicationContext(), 1, intent, PendingIntent.FLAG_ONE_SHOT);
@@ -272,7 +290,10 @@ public class DataCollectorService extends Service {
 
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
+
     private BluetoothAdapter bluetoothAdapter;
+    private BroadcastReceiver bluetoothBroadcastReceiver;
+    private BroadcastReceiver batteryLevelBroadcastReceiver;
 
     private Notification foregroundNotification;
     private int foregroundNotificationId;
@@ -283,7 +304,7 @@ public class DataCollectorService extends Service {
 
 
     synchronized void storeLocationData(long timestamp, double latitude, double longitude, double altitude) throws IOException {
-        // Log.e(TAG, "storeLocationData: called");
+        // Log.i(TAG, "storeLocationData: called");
         FileWriter writer = new FileWriter(this.locationDataFile, true);
         writer.write(String.format(
                 Locale.getDefault(),
@@ -297,7 +318,7 @@ public class DataCollectorService extends Service {
     }
 
     synchronized void storeBtScanData(long timestamp, String address, boolean bound) throws IOException {
-        // Log.e(TAG, "storeBtScanData: called");
+        // Log.i(TAG, "storeBtScanData: called");
         FileWriter writer = new FileWriter(this.btScanDataFile, true);
         writer.write(String.format(
                 Locale.getDefault(),
